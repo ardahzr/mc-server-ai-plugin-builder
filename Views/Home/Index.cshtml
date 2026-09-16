@@ -1,0 +1,357 @@
+@{
+    ViewData["Title"] = "Ana Sayfa";
+    ViewData["FullTitle"] = "MC Panel — Minecraft sunucu paneli ve AI plugin builder";
+    ViewData["Landing"] = true;
+    const string videoSrc = "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260912_104036_bd6924f6-3c8e-417e-8465-6d03c8c2e9e6.mp4";
+    const string posterSrc = "https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/82e7eb75-c65f-490a-99b5-f3d1cad54200.webp";
+}
+
+@section Head {
+    <link rel="preload" as="image" href="@posterSrc" />
+    <link rel="stylesheet" href="~/css/landing.css" asp-append-version="true" />
+    <script>
+    (function(){
+      if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var root = document.documentElement;
+      root.classList.add('anim');
+      var started = false, cleaned = false, bootTimer = 0, safety = 0;
+      function clean(){
+        if (cleaned) return;
+        cleaned = true;
+        clearTimeout(safety);
+        document.removeEventListener('animationend', onEnd, true);
+        root.classList.remove('anim', 'go');
+      }
+      function onEnd(e){
+        if (e.animationName === 'pillIn' && e.target.classList && e.target.classList.contains('pill-ghost')) clean();
+      }
+      function start(){
+        if (started) return;
+        started = true;
+        clearTimeout(bootTimer);
+        document.addEventListener('animationend', onEnd, true);
+        safety = setTimeout(clean, 2600);
+        root.classList.add('go');
+      }
+      function boot(){
+        bootTimer = setTimeout(start, 900);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(start, start);
+        else start();
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+      else boot();
+    })();
+    </script>
+}
+
+<section class="hero" id="top">
+    <div class="bg" role="img" aria-label="Mor nokta matrisinden oluşan, yıldızlı arka planda yavaşça dönen stilize Dünya küresi">
+        <video class="bg-video is-active" id="bgVideoA" autoplay muted loop playsinline preload="auto" disablepictureinpicture aria-hidden="true" poster="@posterSrc">
+            <source src="@videoSrc" type="video/mp4" />
+        </video>
+        <video class="bg-video" id="bgVideoB" muted loop playsinline preload="auto" disablepictureinpicture aria-hidden="true" poster="@posterSrc">
+            <source src="@videoSrc" type="video/mp4" />
+        </video>
+    </div>
+
+    <header class="lnav">
+        <a class="logo" href="#top">
+            <partial name="_BrandMark" />
+            <span>MC Panel</span>
+        </a>
+        <nav class="lnav-links" aria-label="Ana menü">
+            <a href="#ozellikler">Özellikler</a>
+            <a href="#nasil-calisir">Nasıl Çalışır</a>
+            <a href="#fiyatlar">Fiyatlar</a>
+            <a href="#sss">SSS</a>
+            <a asp-controller="PluginBuilder" asp-action="Index">Plugin Builder</a>
+        </nav>
+        <div class="lnav-actions">
+            <a class="pill pill-login" asp-controller="Server" asp-action="Index" data-status-pill data-state="unknown">
+                <span class="status-dot"></span> Konsol
+            </a>
+            <a class="pill pill-start" asp-controller="PluginBuilder" asp-action="Index">
+                Ücretsiz Başla
+                <svg class="arw" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+        </div>
+        <button class="lburger" id="burger" type="button" aria-label="Menüyü aç" aria-expanded="false" aria-controls="menu"><span></span></button>
+    </header>
+
+    <nav class="lmenu menu" id="menu" aria-label="Mobil menü">
+        <a href="#ozellikler">Özellikler</a>
+        <a href="#nasil-calisir">Nasıl Çalışır</a>
+        <a href="#fiyatlar">Fiyatlar</a>
+        <a href="#sss">SSS</a>
+        <a asp-controller="PluginBuilder" asp-action="Index">Plugin Builder</a>
+        <div class="divider"></div>
+        <a asp-controller="Server" asp-action="Index">Konsol</a>
+        <a class="m-start" asp-controller="PluginBuilder" asp-action="Index">
+            Ücretsiz Başla
+            <svg class="arw" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </a>
+    </nav>
+
+    <div class="hero-inner">
+        <a class="eyebrow" asp-controller="Server" asp-action="Index" data-status-pill data-state="unknown">
+            <span class="status-dot"></span>
+            <span data-status-on="Sunucun çevrimiçi" data-status-off="Sunucun şu an kapalı">Spigot 1.21.1 hazır</span>
+            <span class="sep"></span>
+            <span class="go">Konsolu aç →</span>
+        </a>
+        <h1><span class="ln"><span class="ln-i">Minecraft sunucun,</span></span><span class="ln"><span class="ln-i">tek panelde.</span></span></h1>
+        <p class="sub">Sunucunu başlat, canlı konsoldan yönet ve yapay zekâ ile<br>
+           dakikalar içinde Spigot plugin'i üret. Derleme ve kurulum<br>
+           otomatik — sen sadece ne istediğini anlat.</p>
+        <div class="ctas">
+            <a class="pill pill-lg pill-primary" asp-controller="PluginBuilder" asp-action="Index">
+                Ücretsiz Başla
+                <svg class="arw" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+            <a class="pill pill-lg pill-ghost" asp-controller="Server" asp-action="Index">
+                Konsolu Aç
+                <svg class="arw" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+        </div>
+    </div>
+</section>
+
+<div class="stack" aria-label="Teknolojiler">
+    <div class="stack-inner">
+        <span class="stack-label">Şunlarla çalışır</span>
+        <span class="stack-item"><i class="bi bi-box"></i> Spigot 1.21.1</span>
+        <span class="stack-item"><i class="bi bi-cup-hot"></i> Java 21</span>
+        <span class="stack-item"><i class="bi bi-layers"></i> Maven</span>
+        <span class="stack-item"><i class="bi bi-broadcast"></i> SignalR</span>
+        <span class="stack-item"><i class="bi bi-cpu"></i> qwen2.5-coder 14B</span>
+    </div>
+</div>
+
+<!-- ============ FEATURES ============ -->
+<section class="section" id="ozellikler">
+    <div class="section-inner">
+        <div class="section-head" data-reveal>
+            <span class="kicker">Özellikler</span>
+            <h2 class="section-title">Sunucu yönetimi ve plugin geliştirme, aynı yerde.</h2>
+            <p class="section-sub">SSH'a, FTP'ye ya da IDE'ye gerek yok. Sunucunu izle, komut gönder, yeni özellikleri düz Türkçe ile anlat.</p>
+        </div>
+
+        <div class="bento">
+            <article class="tile span-2" data-reveal>
+                <div class="tile-icon"><i class="bi bi-terminal"></i></div>
+                <h3>Canlı konsol</h3>
+                <p>Sunucu logları SignalR ile anında akar. Uyarılar ve hatalar renklenir, komutlar tek satırdan gider.</p>
+                <div class="tile-visual">
+                    <div class="term" aria-hidden="true">
+                        <div class="term-bar"><i></i><i></i><i></i><span>console — spigot-1.21.1.jar</span></div>
+                        <div class="term-body">
+                            <div><span class="t-dim">[12:04:28</span> <span class="t-info">INFO]</span>: Starting minecraft server version 1.21.1</div>
+                            <div><span class="t-dim">[12:04:30</span> <span class="t-info">INFO]</span>: [MobKill] Enabling MobKill v1.0</div>
+                            <div><span class="t-dim">[12:04:31</span> <span class="t-info">INFO]</span>: Done (4.182s)! For help, type "help"</div>
+                            <div class="t-panel">[Panel] Komut gönderildi: list</div>
+                            <div><span class="t-dim">[12:05:02</span> <span class="t-warn">WARN]</span>: Can't keep up! Is the server overloaded?</div>
+                            <div class="t-prompt"><b>&gt;</b>tps<span class="caret"></span></div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="tile" data-reveal style="--d:.08s">
+                <div class="tile-icon"><i class="bi bi-toggles"></i></div>
+                <h3>Tek tıkla kontrol</h3>
+                <p>Başlat, durdur, yeniden başlat. Oyuncu listesi ve TPS bir tık uzağında.</p>
+                <div class="tile-visual">
+                    <div class="ctl" aria-hidden="true">
+                        <div class="ctl-row" data-state="on">
+                            <span class="k"><span class="status-dot"></span> Çalışıyor</span>
+                            <span class="v">PID 48213</span>
+                        </div>
+                        <div class="ctl-btns">
+                            <span class="ctl-btn go"><i class="bi bi-play-fill"></i> Başlat</span>
+                            <span class="ctl-btn stop"><i class="bi bi-stop-fill"></i> Durdur</span>
+                            <span class="ctl-btn"><i class="bi bi-arrow-clockwise"></i> Yeniden</span>
+                        </div>
+                        <div class="ctl-btns">
+                            <span class="ctl-btn"><i class="bi bi-people"></i> list</span>
+                            <span class="ctl-btn"><i class="bi bi-speedometer2"></i> tps</span>
+                            <span class="ctl-btn"><i class="bi bi-puzzle"></i> plugins</span>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="tile" data-reveal>
+                <div class="tile-icon"><i class="bi bi-stars"></i></div>
+                <h3>AI Plugin Builder</h3>
+                <p>Ne istediğini anlat; AI önce soru sorar, sonra blueprint'i ve kodu çıkarır.</p>
+                <div class="tile-visual">
+                    <div class="chat" aria-hidden="true">
+                        <div class="bubble me"><span class="who">Sen</span>Her mob öldürende oyuncuya 5 altın versin, /mobkill istatistik göstersin.</div>
+                        <div class="bubble ai"><span class="who">AI</span>Blueprint hazır.
+                            <div class="chips"><span class="chip gold">/mobkill</span><span class="chip dia">EntityDeathEvent</span><span class="chip">MobKillPlugin</span></div>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <article class="tile span-2" data-reveal style="--d:.08s">
+                <div class="tile-icon"><i class="bi bi-hammer"></i></div>
+                <h3>Otomatik derleme, otomatik düzeltme</h3>
+                <p>Kod Maven ile derlenir. Hata çıkarsa çıktı AI'a geri gider ve düzeltilir — 5 denemeye kadar, sen dokunmadan.</p>
+                <div class="tile-visual">
+                    <div class="phases" aria-hidden="true">
+                        <div class="phase"><div class="phase-top"><span class="phase-ico"><i class="bi bi-check-lg"></i></span><span class="phase-n">01</span></div><b>Ayrıştırma</b><small>6 dosya</small><div class="phase-bar"><i></i></div></div>
+                        <div class="phase retry"><div class="phase-top"><span class="phase-ico"><i class="bi bi-arrow-repeat"></i></span><span class="phase-n">02</span></div><b>Derleme</b><small>2. denemede düzeltildi</small><div class="phase-bar"><i></i></div></div>
+                        <div class="phase"><div class="phase-top"><span class="phase-ico"><i class="bi bi-check-lg"></i></span><span class="phase-n">03</span></div><b>Paketleme</b><small>MobKill.jar</small><div class="phase-bar"><i></i></div></div>
+                        <div class="phase"><div class="phase-top"><span class="phase-ico"><i class="bi bi-check-lg"></i></span><span class="phase-n">04</span></div><b>Deploy</b><small>plugins/ klasörüne</small><div class="phase-bar"><i></i></div></div>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="section" id="nasil-calisir">
+    <div class="section-inner">
+        <div class="section-head" data-reveal>
+            <span class="kicker">Nasıl çalışır</span>
+            <h2 class="section-title">Fikirden JAR'a üç adım.</h2>
+            <p class="section-sub">Java bilmen gerekmiyor. Blueprint'i onayla, gerisini panel halletsin.</p>
+        </div>
+        <ol class="steps">
+            <li class="step" data-reveal>
+                <svg class="step-block" viewBox="0 0 64 64" aria-hidden="true">
+                    <path d="M32 4 60 18 32 32 4 18Z" fill="#62d676" /><path d="M4 18 32 32V60L4 46Z" fill="#8a5a2e" /><path d="M60 18 32 32V60L60 46Z" fill="#6a4322" />
+                    <path d="M4 18 32 32V39L4 25Z" fill="#46b85c" /><path d="M60 18 32 32V39L60 25Z" fill="#36974b" /><path d="M32 9 42 14 32 19 22 14Z" fill="#86ec97" opacity=".55" />
+                </svg>
+                <span class="step-no">01</span>
+                <h3>Anlat</h3>
+                <p>Plugin fikrini düz Türkçe yaz. Komutlar, ödüller, mesajlar — aklına ne geliyorsa.</p>
+            </li>
+            <li class="step" data-reveal style="--d:.08s">
+                <svg class="step-block" viewBox="0 0 64 64" aria-hidden="true">
+                    <path d="M32 4 60 18 32 32 4 18Z" fill="#ffd95a" /><path d="M4 18 32 32V60L4 46Z" fill="#e0a52a" /><path d="M60 18 32 32V60L60 46Z" fill="#b8821a" />
+                    <path d="M32 9 42 14 32 19 22 14Z" fill="#fff0a8" opacity=".6" /><path d="M9 27 17 31V35L9 31Z" fill="#f5c542" opacity=".8" /><path d="M55 27 47 31V35L55 31Z" fill="#9c6c12" opacity=".8" />
+                </svg>
+                <span class="step-no">02</span>
+                <h3>Netleştir</h3>
+                <p>AI birkaç soru sorar; komutları, izinleri, event'leri ve sınıfları içeren bir blueprint çıkarır.</p>
+            </li>
+            <li class="step" data-reveal style="--d:.16s">
+                <svg class="step-block" viewBox="0 0 64 64" aria-hidden="true">
+                    <path d="M32 4 60 18 32 32 4 18Z" fill="#8ff3ef" /><path d="M4 18 32 32V60L4 46Z" fill="#3fc9c4" /><path d="M60 18 32 32V60L60 46Z" fill="#2a9d9b" />
+                    <path d="M32 9 42 14 32 19 22 14Z" fill="#e0fffd" opacity=".6" /><path d="M10 30 16 33V38L10 35Z" fill="#b8fbf8" opacity=".7" /><path d="M52 32 46 35V40L52 37Z" fill="#1d7a78" opacity=".8" />
+                </svg>
+                <span class="step-no">03</span>
+                <h3>Derle &amp; Kur</h3>
+                <p>Kod üretilir, Maven ile derlenir, hatalar otomatik düzeltilir ve JAR sunucuna kurulur.</p>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="section" id="fiyatlar">
+    <div class="section-inner">
+        <div class="section-head" data-reveal>
+            <span class="kicker">Fiyatlar</span>
+            <h2 class="section-title">Küçük başla, sunucun büyüdükçe büyüt.</h2>
+            <p class="section-sub">Kredi kartı gerekmez. İstediğin zaman plan değiştir.</p>
+        </div>
+        <div class="plans">
+            <article class="plan" data-reveal>
+                <h3 class="plan-name">Başlangıç</h3>
+                <p class="plan-desc">Tek sunucusunu yöneten oyuncular için.</p>
+                <div class="plan-price"><b>₺0</b><span>/ ay</span></div>
+                <ul>
+                    <li><i class="bi bi-check2"></i> 1 sunucu</li>
+                    <li><i class="bi bi-check2"></i> Canlı konsol ve kontroller</li>
+                    <li><i class="bi bi-check2"></i> Ayda 3 AI plugin</li>
+                    <li><i class="bi bi-check2"></i> Topluluk desteği</li>
+                </ul>
+                <a class="btn btn-ghost" asp-controller="PluginBuilder" asp-action="Index">Ücretsiz Başla</a>
+            </article>
+            <article class="plan featured" data-reveal style="--d:.08s">
+                <span class="plan-badge">En popüler</span>
+                <h3 class="plan-name">Pro</h3>
+                <p class="plan-desc">Düzenli yeni özellik çıkaran sunucular için.</p>
+                <div class="plan-price"><b>₺149</b><span>/ ay</span></div>
+                <ul>
+                    <li><i class="bi bi-check2"></i> 3 sunucu</li>
+                    <li><i class="bi bi-check2"></i> Sınırsız AI plugin</li>
+                    <li><i class="bi bi-check2"></i> Otomatik hata düzeltme</li>
+                    <li><i class="bi bi-check2"></i> Mevcut plugin'leri AI ile düzenleme</li>
+                    <li><i class="bi bi-check2"></i> E-posta desteği</li>
+                </ul>
+                <a class="btn btn-mc" asp-controller="PluginBuilder" asp-action="Index">Pro'yu Dene</a>
+            </article>
+            <article class="plan" data-reveal style="--d:.16s">
+                <h3 class="plan-name">Network</h3>
+                <p class="plan-desc">Birden fazla sunucu ve ekip için.</p>
+                <div class="plan-price"><b>₺449</b><span>/ ay</span></div>
+                <ul>
+                    <li><i class="bi bi-check2"></i> 10 sunucu</li>
+                    <li><i class="bi bi-check2"></i> Pro'daki her şey</li>
+                    <li><i class="bi bi-check2"></i> Ekip üyeleri</li>
+                    <li><i class="bi bi-check2"></i> Öncelikli derleme</li>
+                    <li><i class="bi bi-check2"></i> Öncelikli destek</li>
+                </ul>
+                <a class="btn btn-ghost" href="#sss">Bize Ulaşın</a>
+            </article>
+        </div>
+        <p class="plans-note">Fiyatlara KDV dahil değildir.</p>
+    </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="section" id="sss">
+    <div class="section-inner">
+        <div class="section-head" data-reveal>
+            <span class="kicker">SSS</span>
+            <h2 class="section-title">Sık sorulanlar</h2>
+        </div>
+        <div class="faq" data-reveal>
+            <details>
+                <summary>Hangi Minecraft sürümlerini destekliyor?</summary>
+                <p>Panel şu an Spigot 1.21.1 sunucularını ve Java 21'i hedefliyor. Üretilen plugin'ler de bu sürüme göre derleniyor.</p>
+            </details>
+            <details>
+                <summary>AI plugin'i nasıl yazıyor?</summary>
+                <p>Açıklamandan önce netleştirme soruları üretir. Cevaplarınla komutları, izinleri, event listener'ları ve sınıfları içeren bir blueprint hazırlar. Kod bu blueprint'ten üretilir ve Maven ile derlenir.</p>
+            </details>
+            <details>
+                <summary>Derleme hata verirse ne olur?</summary>
+                <p>Hata çıktısı AI'a geri gönderilir ve kod otomatik olarak düzeltilir. Bu döngü 5 denemeye kadar tekrarlanır; yine de derlenmezse hata çıktısını panelde görürsün.</p>
+            </details>
+            <details>
+                <summary>Mevcut plugin'lerimi düzenleyebilir miyim?</summary>
+                <p>Evet. Düzenleme modu plugin'in kaynak dosyalarını açar; değişikliği AI'a anlatır, sonucu tek tıkla yeniden derleyip kurarsın.</p>
+            </details>
+            <details>
+                <summary>Üretilen kod nereye kaydediliyor?</summary>
+                <p>Kaynak kodu ve derlenen JAR sunucunun <code>plugins</code> klasörüne yazılır. Dosyalar senin; istediğin gibi düzenleyebilir ya da başka sunucularda kullanabilirsin.</p>
+            </details>
+        </div>
+    </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="cta-band">
+    <div class="cta-card" data-reveal>
+        <span class="kicker">Hemen dene</span>
+        <h2 class="section-title">Bir sonraki plugin'in bir cümle uzağında.</h2>
+        <p>Fikrini yaz, blueprint'i onayla, sunucunu yeniden başlat. Hepsi bu.</p>
+        <div class="row-btns">
+            <a class="btn btn-mc" asp-controller="PluginBuilder" asp-action="Index">
+                Ücretsiz Başla
+                <svg class="arw" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+            <a class="btn btn-ghost" asp-controller="Server" asp-action="Index">Konsolu Aç</a>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/landing.js" asp-append-version="true"></script>
+}

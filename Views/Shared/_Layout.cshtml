@@ -1,0 +1,118 @@
+@{
+    var isLanding = ViewData["Landing"] as bool? == true;
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var pageTitle = ViewData["FullTitle"] as string ?? $"{ViewData["Title"]} · MC Panel";
+}
+<!DOCTYPE html>
+<html lang="tr" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>@pageTitle</title>
+    <meta name="description" content="Minecraft sunucunu tek panelden yönet, yapay zekâ ile dakikalar içinde Spigot plugin'i üret." />
+    <meta name="theme-color" content="#060708" />
+    <script type="importmap"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=@(isLanding ? "block" : "swap")" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body class="@(isLanding ? "is-landing" : "is-app")">
+    @if (!isLanding)
+    {
+        <header class="topbar">
+            <div class="topbar-inner">
+                <a class="brand" asp-controller="Home" asp-action="Index">
+                    <partial name="_BrandMark" />
+                    <span>MC Panel</span>
+                </a>
+
+                <nav class="topnav" aria-label="Ana menü">
+                    <a asp-controller="Home" asp-action="Index" class="@(controller == "Home" ? "is-active" : null)">
+                        <i class="bi bi-grid-1x2"></i> Genel Bakış
+                    </a>
+                    <a asp-controller="Server" asp-action="Index" class="@(controller == "Server" ? "is-active" : null)"
+                       aria-current="@(controller == "Server" ? "page" : null)">
+                        <i class="bi bi-hdd-rack"></i> Sunucu
+                    </a>
+                    <a asp-controller="PluginBuilder" asp-action="Index" class="@(controller == "PluginBuilder" ? "is-active" : null)"
+                       aria-current="@(controller == "PluginBuilder" ? "page" : null)">
+                        <i class="bi bi-stars"></i> Plugin Builder
+                    </a>
+                </nav>
+
+                <div class="top-actions">
+                    <a class="status-pill" asp-controller="Server" asp-action="Index" data-status-pill data-state="unknown">
+                        <span class="status-dot"></span>
+                        <span class="status-meta">Spigot 1.21.1</span>
+                        <span id="nav-status" data-status-on="Çalışıyor" data-status-off="Kapalı">Kontrol ediliyor…</span>
+                    </a>
+                    <a class="btn btn-mc" asp-controller="PluginBuilder" asp-action="Index">
+                        Yeni Plugin
+                        <svg class="arw" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                    </a>
+                </div>
+
+                <button class="burger" id="burger" type="button" aria-label="Menüyü aç" aria-expanded="false" aria-controls="menu"><span></span></button>
+            </div>
+        </header>
+
+        <nav class="menu" id="menu" aria-label="Mobil menü">
+            <a asp-controller="Home" asp-action="Index"><i class="bi bi-grid-1x2"></i> Genel Bakış</a>
+            <a asp-controller="Server" asp-action="Index"><i class="bi bi-hdd-rack"></i> Sunucu</a>
+            <a asp-controller="PluginBuilder" asp-action="Index"><i class="bi bi-stars"></i> Plugin Builder</a>
+            <div class="divider"></div>
+            <a class="m-start" asp-controller="PluginBuilder" asp-action="Index">
+                Yeni Plugin
+                <svg class="arw" viewBox="0 0 12 10" fill="none" aria-hidden="true"><path d="M0.8 5h10M7.1 1.4 10.9 5l-3.8 3.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+        </nav>
+
+        <main class="app-main" role="main">
+            @RenderBody()
+        </main>
+    }
+    else
+    {
+        @RenderBody()
+    }
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <a class="brand" asp-controller="Home" asp-action="Index">
+                    <partial name="_BrandMark" />
+                    <span>MC Panel</span>
+                </a>
+                <p class="footer-tag">Minecraft sunucu yönetimi ve yapay zekâ destekli plugin geliştirme — tek panelde.</p>
+            </div>
+            <div class="footer-col">
+                <h4>Ürün</h4>
+                <a asp-controller="Server" asp-action="Index">Sunucu Paneli</a>
+                <a asp-controller="PluginBuilder" asp-action="Index">AI Plugin Builder</a>
+                <a href="/#fiyatlar">Fiyatlandırma</a>
+            </div>
+            <div class="footer-col">
+                <h4>Kaynaklar</h4>
+                <a href="/#nasil-calisir">Nasıl Çalışır</a>
+                <a href="/#sss">Sık Sorulanlar</a>
+                <a asp-controller="Home" asp-action="Privacy">Gizlilik</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; 2026 MC Panel</span>
+            <span>Minecraft, Mojang AB'nin ticari markasıdır. MC Panel, Mojang veya Microsoft ile bağlantılı değildir.</span>
+        </div>
+    </footer>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

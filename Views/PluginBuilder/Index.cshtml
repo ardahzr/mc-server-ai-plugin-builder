@@ -1,0 +1,1266 @@
+@{
+    ViewData["Title"] = "AI Plugin Builder";
+    var existingPlugins = (ViewBag.ExistingPlugins as List<McPanel.Services.PluginInfo>) ?? new List<McPanel.Services.PluginInfo>();
+}
+
+<style>
+    /* ===== WIZARD LAYOUT ===== */
+    .wizard-container { max-width: 1200px; margin: 0 auto; }
+
+    /* Top stepper bar */
+    .stepper-bar { display: flex; gap: 6px; margin-bottom: 24px; padding: 6px; border-radius: 20px; background: var(--surface); border: 1px solid var(--line); }
+    .stepper-step { flex: 1; padding: 12px 16px; border-radius: 14px; position: relative; display: flex; align-items: center; gap: 12px; cursor: default; transition: background-color .25s ease, opacity .25s ease; min-width: 0; }
+    .stepper-step.active { background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    .stepper-step.completed { background: transparent; }
+    .stepper-step.completed .step-icon { background: var(--grass) !important; color: #03140a !important; }
+    .stepper-step.disabled { opacity: 0.45; }
+    .step-icon { width: 36px; height: 36px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; flex-shrink: 0; }
+    .step-icon.blueprint { background: rgba(94,230,240,.12); color: var(--diamond); }
+    .step-icon.generate { background: rgba(167,139,250,.14); color: var(--amethyst); }
+    .step-icon.download { background: rgba(255,255,255,.06); color: var(--ink-3); }
+    .step-title { font-weight: 600; color: #fff; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .step-desc { color: var(--ink-3); font-size: 0.75rem; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Main layout: content + sidebar */
+    .wizard-body { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; }
+    .wizard-main { min-width: 0; }
+    .wizard-sidebar { position: sticky; top: 84px; align-self: start; }
+
+    /* Cards */
+    .wiz-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; margin-bottom: 16px; overflow: hidden; }
+    .wiz-card-header { padding: 15px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .wiz-card-header h5 { margin: 0; font-size: 0.95rem; font-weight: 600; color: #fff; letter-spacing: -.01em; }
+    .wiz-card-body { padding: 20px; }
+
+    /* Question items */
+    .question-item { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .question-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .q-number { width: 28px; height: 28px; background: var(--surface-3); border: 1px solid var(--line-2); border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.78rem; color: var(--ink-2); margin-right: 12px; flex-shrink: 0; transition: all .2s ease; }
+    .q-number.answered { background: var(--grass); border-color: transparent; color: #03140a; }
+    .q-text { color: var(--ink-2); font-size: 0.92rem; line-height: 1.55; padding-top: 3px; }
+    .q-input { margin-top: 10px; font-size: 0.88rem; }
+
+    /* Progress bar */
+    .progress-thin { height: 4px; background: rgba(255,255,255,.06); border-radius: 4px; overflow: hidden; }
+    .progress-thin .bar { height: 100%; background: linear-gradient(90deg, var(--grass), var(--diamond)); transition: width 0.4s; border-radius: 4px; }
+
+    /* Blueprint sections */
+    .bp-section { margin-bottom: 12px; }
+    .bp-section-header { padding: 12px 16px; background: var(--surface-2); border-radius: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .bp-section-header i { font-size: 1.1rem; }
+    .bp-section-header h6 { margin: 0; font-weight: 600; color: #fff; font-size: 0.88rem; }
+    .bp-section-body { padding: 12px 16px; }
+    .bp-tag { display: inline-block; padding: 3px 9px; border-radius: 7px; font-size: 0.7rem; font-weight: 700; letter-spacing: .03em; margin-right: 6px; }
+    .bp-tag-green { background: rgba(94,224,122,.12); color: var(--grass); }
+    .bp-tag-blue { background: rgba(94,230,240,.1); color: var(--diamond); }
+    .bp-tag-yellow { background: rgba(247,194,74,.12); color: var(--gold); }
+    .bp-tag-red { background: rgba(255,90,95,.12); color: #ff9497; }
+    .bp-tag-purple { background: rgba(167,139,250,.14); color: var(--amethyst); }
+    .verified-icon { color: var(--grass); }
+
+    /* User story card */
+    .story-card { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
+
+    /* Sidebar cards */
+    .sidebar-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; margin-bottom: 16px; }
+    .sidebar-card h6 { font-size: 0.78rem; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 16px; display: flex; align-items: center; gap: 7px; }
+    .sidebar-card h6 i { color: var(--gold); }
+    .how-step { display: flex; gap: 12px; margin-bottom: 14px; }
+    .how-step:last-child { margin-bottom: 0; }
+    .how-step-num { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.74rem; flex-shrink: 0; }
+    .how-step-num.s1 { background: rgba(94,230,240,.12); color: var(--diamond); }
+    .how-step-num.s2 { background: rgba(167,139,250,.14); color: var(--amethyst); }
+    .how-step-num.s3 { background: rgba(94,224,122,.14); color: var(--grass); }
+    .how-step-title { font-weight: 600; color: #fff; font-size: 0.85rem; }
+    .how-step-desc { color: var(--ink-3); font-size: 0.76rem; }
+    .info-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 0.8rem; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--ink-4); font-weight: 500; letter-spacing: .03em; }
+    .info-value { color: #fff; font-weight: 600; text-align: right; font-family: var(--mono); font-size: .76rem; word-break: break-word; }
+
+    /* Create form */
+    .create-hero { text-align: center; padding: 40px 20px 36px; }
+    .create-hero h2 { color: #fff; font-weight: 500; font-size: clamp(32px, 4vw, 48px); letter-spacing: -.035em; line-height: 1.05; margin: 14px 0 12px; }
+    .create-hero p { color: var(--ink-3); font-size: 1.05rem; max-width: 52ch; margin: 0 auto; }
+    .create-form { max-width: 640px; margin: 0 auto; }
+    .create-form textarea { resize: vertical; min-height: 120px; }
+
+    /* Existing plugins grid */
+    .section-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .section-label h5 { margin: 0; font-size: .95rem; font-weight: 600; }
+    .plugins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 28px; }
+    .plugin-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; transition: border-color .2s ease, transform .2s ease; display: flex; flex-direction: column; gap: 4px; }
+    .plugin-card:hover { border-color: rgba(247,194,74,.4); transform: translateY(-2px); }
+    .plugin-card-top { display: flex; align-items: center; gap: 10px; }
+    .plugin-card-icon { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: rgba(247,194,74,.12); color: var(--gold); flex-shrink: 0; }
+    .plugin-card h6 { color: #fff; margin: 0; font-weight: 600; font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .plugin-card .meta { color: var(--ink-4); font-size: .76rem; font-family: var(--mono); }
+
+    /* Loading spinner */
+    .wizard-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.1); border-top-color: var(--grass); border-radius: 50%; animation: wspin 0.8s linear infinite; vertical-align: middle; }
+    @@keyframes wspin { to { transform: rotate(360deg); } }
+
+    /* Build output */
+    .build-output { background: #08090b; border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-family: var(--mono); font-size: 0.78rem; color: var(--ink-3); max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+
+    /* Responsive */
+    @@media (max-width: 900px) {
+        .wizard-body { grid-template-columns: minmax(0, 1fr); }
+        .wizard-sidebar { position: static; }
+        .stepper-bar { flex-direction: column; }
+    }
+
+    /* Edit mode panel */
+    .edit-panel { display: none; }
+    .edit-panel.show { display: block; }
+
+    /* ===== EDIT MODE ===== */
+    .edit-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+    .edit-stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; text-align: left; transition: border-color .2s ease, transform .2s ease; }
+    .edit-stat-card:hover { border-color: rgba(94,224,122,.35); transform: translateY(-2px); }
+    .edit-stat-icon { font-size: 1.1rem; margin-bottom: 10px; }
+    .edit-stat-value { font-size: 1.6rem; font-weight: 500; color: #fff; letter-spacing: -.03em; line-height: 1; }
+    .edit-stat-label { font-size: 0.7rem; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 6px; }
+
+    .edit-file-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; font-size: 0.82rem; color: var(--ink-2); transition: background-color .15s ease, color .15s ease; margin-bottom: 2px; border-left: 0; min-width: 0; }
+    .edit-file-item > div { min-width: 0; }
+    .edit-file-item:hover { background: rgba(255,255,255,.05); color: #fff; }
+    .edit-file-item.active { background: rgba(94,224,122,.1); color: var(--grass); box-shadow: inset 2px 0 0 var(--grass); }
+    .edit-file-item .file-icon { font-size: 1rem; flex-shrink: 0; }
+    .edit-file-item .file-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .edit-file-item .file-path { font-size: 0.66rem; color: var(--ink-4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
+
+    .edit-code-block { margin: 0; padding: 16px 18px; background: #08090b; color: #d7dbe2; font-family: var(--mono); font-size: 0.78rem; line-height: 1.7; white-space: pre-wrap; word-wrap: break-word; tab-size: 4; }
+
+    .edit-chat-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .edit-chat-msg { max-width: 92%; animation: editMsgSlide 0.3s ease-out; }
+    .edit-chat-msg.user { align-self: flex-end; }
+    .edit-chat-msg.ai { align-self: flex-start; }
+    .edit-chat-bubble { padding: 10px 14px; border-radius: 16px; font-size: 0.87rem; line-height: 1.55; }
+    .edit-chat-bubble p:last-child { margin-bottom: 0; }
+    .edit-chat-bubble pre { background: #08090b; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 0.75rem; margin: 6px 0; overflow-x: auto; }
+    .edit-chat-bubble code { font-size: 0.78rem; }
+    .edit-chat-msg.user .edit-chat-bubble { background: rgba(94,224,122,.12); border: 1px solid rgba(94,224,122,.22); color: #d8fbe0; border-bottom-right-radius: 5px; }
+    .edit-chat-msg.ai .edit-chat-bubble { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); border-bottom-left-radius: 5px; }
+    .edit-chat-sender { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .edit-chat-msg.user .edit-chat-sender { color: rgba(94,224,122,.8); text-align: right; }
+    .edit-chat-msg.ai .edit-chat-sender { color: var(--ink-4); }
+    @@keyframes editMsgSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .edit-chat-input-area { padding: 12px; border-top: 1px solid var(--line); }
+    .edit-chat-hints { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .edit-hint-chip { padding: 4px 10px; background: rgba(255,255,255,.04); border: 1px solid var(--line-2); border-radius: 999px; font-size: 0.72rem; color: var(--ink-3); cursor: pointer; transition: all 0.15s; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+    .edit-hint-chip:hover { background: rgba(255,255,255,.08); color: #fff; border-color: rgba(247,194,74,.45); }
+
+    .edit-file-tabs { display: flex; gap: 0; overflow-x: auto; border-bottom: 1px solid var(--line); background: var(--surface); scrollbar-width: thin; flex-shrink: 0; }
+    .edit-file-tab { padding: 9px 14px; font-size: 0.76rem; color: var(--ink-3); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+    .edit-file-tab:hover { color: #fff; background: rgba(255,255,255,.03); }
+    .edit-file-tab.active { color: #fff; border-bottom-color: var(--grass); background: #08090b; }
+    .edit-file-tab .tab-icon { font-size: 0.85rem; }
+
+    .edit-typing-dots { display: inline-flex; gap: 4px; padding: 4px 0; }
+    .edit-typing-dots span { width: 6px; height: 6px; background: var(--ink-3); border-radius: 50%; animation: editDotBounce 1.4s infinite ease-in-out both; }
+    .edit-typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .edit-typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @@keyframes editDotBounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    .edit-example-list { display: flex; flex-direction: column; gap: 6px; }
+    .edit-example { padding: 9px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; font-size: 0.78rem; color: var(--ink-2); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 9px; }
+    .edit-example:hover { background: var(--surface-3); color: #fff; border-color: var(--line-2); }
+
+    .edit-build-phases { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+    .edit-build-phase { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; transition: all 0.3s; }
+    .edit-build-phase.active { border-color: rgba(247,194,74,.35); background: rgba(247,194,74,.05); }
+    .edit-build-phase.done { border-color: rgba(94,224,122,.25); background: rgba(94,224,122,.04); }
+    .edit-build-phase.error { border-color: rgba(255,90,95,.35); background: rgba(255,90,95,.05); }
+    .edit-phase-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+    .edit-build-phase.pending .edit-phase-icon { background: rgba(255,255,255,.05); color: var(--ink-4); }
+    .edit-build-phase.active .edit-phase-icon { background: rgba(247,194,74,.14); color: var(--gold); animation: editPulse 1.5s infinite; }
+    .edit-build-phase.done .edit-phase-icon { background: rgba(94,224,122,.14); color: var(--grass); }
+    .edit-build-phase.error .edit-phase-icon { background: rgba(255,90,95,.14); color: #ff9497; }
+    .edit-phase-label { font-weight: 600; color: #fff; font-size: 0.86rem; }
+    .edit-phase-desc { font-size: 0.74rem; color: var(--ink-3); }
+    @@keyframes editPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(247,194,74,0.3); } 50% { box-shadow: 0 0 0 8px rgba(247,194,74,0); } }
+
+    .edit-success-container { text-align: center; padding: 32px 20px; }
+    .edit-success-icon { font-size: 3.5rem; color: var(--grass); animation: editSuccessPop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+    @@keyframes editSuccessPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+    .edit-retry-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; background: rgba(247,194,74,.12); color: var(--gold); border-radius: 999px; font-size: 0.74rem; font-weight: 600; }
+
+    .page-back { width: 38px; height: 38px; padding: 0; border-radius: 12px; }
+</style>
+
+<!-- ========== STEP 0: CREATE / SELECT ========== -->
+<div id="stepCreate" class="wizard-container">
+    <div class="create-hero">
+        <span class="eyebrow-sm" lang="en"><i class="bi bi-stars"></i> AI Plugin Builder</span>
+        <h2>Fikrini anlat,<br />plugin'i biz yazalım.</h2>
+        <p>Minecraft Spigot plugin'ini yapay zekâ ile oluştur. Sorular, blueprint, kod, derleme ve kurulum — hepsi tek akışta.</p>
+    </div>
+
+    <!-- Existing Plugins -->
+    @if (existingPlugins.Count > 0)
+    {
+        <div class="mb-4">
+            <div class="section-label"><h5>Mevcut projeler</h5><span class="badge bg-secondary">@existingPlugins.Count</span></div>
+            <div class="plugins-grid">
+                @foreach (var plugin in existingPlugins)
+                {
+                    <div class="plugin-card">
+                        <div class="plugin-card-top">
+                            <span class="plugin-card-icon"><i class="bi bi-puzzle-fill"></i></span>
+                            <div style="min-width:0">
+                                <h6>@plugin.Name</h6>
+                                <div class="meta">@plugin.SourceFiles.Count dosya</div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-sm btn-outline-info" onclick="loadPluginSource('@plugin.Name')">
+                                <i class="bi bi-eye"></i> Gor
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="editPluginWithAI('@plugin.Name')">
+                                <i class="bi bi-pencil"></i> Duzenle
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- New Plugin Form -->
+    <div class="wiz-card">
+        <div class="wiz-card-header">
+            <i class="bi bi-plus-circle-fill text-success"></i>
+            <h5>Yeni plugin oluştur</h5>
+        </div>
+        <div class="wiz-card-body">
+            <div class="create-form">
+                <div class="mb-3">
+                    <label class="form-label small" for="pluginName">Plugin adı</label>
+                    <input type="text" id="pluginName" class="form-control" placeholder="Örn: MobKill, PvPArena, LootChest…" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small" for="pluginDesc">Ne yapmak istiyorsun? (Detaylı anlat)</label>
+                    <textarea id="pluginDesc" class="form-control" rows="4" placeholder="Örn: Her mob öldürüldüğünde oyuncuya 5 altın versin. Farklı moblara farklı ödül olsun. /mobkill komutuyla istatistik göstersin."></textarea>
+                </div>
+                <button class="btn btn-mc w-100 py-2" onclick="startWizard()">
+                    <i class="bi bi-rocket-takeoff-fill"></i> Başla
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== STEP 1-3: WIZARD ========== -->
+<div id="wizardMain" class="wizard-container" style="display:none;">
+    <!-- Back button + title -->
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <button class="btn btn-sm btn-outline-secondary page-back" onclick="goBack()" title="Geri" aria-label="Geri"><i class="bi bi-arrow-left"></i></button>
+        <div>
+            <h4 class="text-white mb-0" id="wizPluginTitle">PluginName</h4>
+            <div class="d-flex gap-2 mt-1">
+                <span class="badge bg-secondary">Spigot</span>
+                <span class="badge bg-secondary">MC 1.21</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stepper -->
+    <div class="stepper-bar">
+        <div class="stepper-step active" id="stepper1">
+            <div class="step-icon blueprint"><i class="bi bi-clipboard-check-fill"></i></div>
+            <div>
+                <div class="step-title">Blueprint Ready</div>
+                <div class="step-desc">Gereksinimleri belirle</div>
+            </div>
+        </div>
+        <div class="stepper-step disabled" id="stepper2">
+            <div class="step-icon generate"><i class="bi bi-code-slash"></i></div>
+            <div>
+                <div class="step-title">Generate Release</div>
+                <div class="step-desc">Kodu uret ve derle</div>
+            </div>
+        </div>
+        <div class="stepper-step disabled" id="stepper3">
+            <div class="step-icon download"><i class="bi bi-download"></i></div>
+            <div>
+                <div class="step-title">Download</div>
+                <div class="step-desc">JAR dosyasini indir</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="wizard-body">
+        <!-- ===== MAIN CONTENT ===== -->
+        <div class="wizard-main">
+
+            <!-- STEP 1: Clarification Questions -->
+            <div id="stepQuestions">
+                <div class="wiz-card">
+                    <div class="wiz-card-header">
+                        <i class="bi bi-question-circle-fill text-info"></i>
+                        <h5>Clarification Questions</h5>
+                        <span class="text-muted ms-auto small">Gereksinimlerini anlamak icin yardim et</span>
+                    </div>
+                    <div class="wiz-card-body">
+                        <!-- Progress -->
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="progress-thin flex-fill">
+                                <div class="bar" id="questionProgress" style="width: 0%"></div>
+                            </div>
+                            <span class="text-muted small" id="questionCount">0/5</span>
+                        </div>
+
+                        <div id="questionsList">
+                            <div class="text-center py-4">
+                                <div class="wizard-spinner"></div>
+                                <p class="text-muted mt-2 small">AI sorulari hazirlaniyor...</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 text-muted small">
+                            <i class="bi bi-info-circle"></i> Cevaplarin AI'in daha isabetli plugin olusturmasina yardimci olur. Bos birakilabilir.
+                        </div>
+
+                        <button class="btn btn-mc w-100 mt-3 py-2" id="btnSubmitAnswers" onclick="submitAnswers()" disabled>
+                            <i class="bi bi-check2-circle"></i> Gonder & Devam Et
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Blueprint -->
+            <div id="stepBlueprint" style="display:none;">
+                <div id="blueprintContent">
+                    <div class="text-center py-5">
+                        <div class="wizard-spinner"></div>
+                        <p class="text-muted mt-2">Blueprint hazirlaniyor...</p>
+                    </div>
+                </div>
+
+                <button class="btn btn-mc w-100 mt-3 py-2" id="btnGenerateRelease" onclick="generateRelease()" style="display:none;">
+                    <i class="bi bi-play-fill"></i> Generate Release — Kodu Uret & Derle
+                </button>
+            </div>
+
+            <!-- STEP 3: Build / Download -->
+            <div id="stepBuild" style="display:none;">
+                <div class="wiz-card">
+                    <div class="wiz-card-header">
+                        <i class="bi bi-hammer text-warning"></i>
+                        <h5>Build & Deploy</h5>
+                    </div>
+                    <div class="wiz-card-body" id="buildStatus">
+                        <div class="text-center py-4">
+                            <div class="wizard-spinner"></div>
+                            <p class="text-muted mt-2">Kod uretiliyor ve derleniyor...</p>
+                            <p class="text-muted small">Bu islem 1-3 dakika surebilir (14B model)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== SIDEBAR ===== -->
+        <div class="wizard-sidebar">
+            <div class="sidebar-card">
+                <h6><i class="bi bi-lightbulb-fill"></i> Nasıl Çalışır?</h6>
+                <div class="how-step">
+                    <div class="how-step-num s1">1</div>
+                    <div>
+                        <div class="how-step-title">Refine</div>
+                        <div class="how-step-desc">Sorulari yanitla, blueprint olustur</div>
+                    </div>
+                </div>
+                <div class="how-step">
+                    <div class="how-step-num s2">2</div>
+                    <div>
+                        <div class="how-step-title">Build</div>
+                        <div class="how-step-desc">Kodu uret, derle ve JAR olustur</div>
+                    </div>
+                </div>
+                <div class="how-step">
+                    <div class="how-step-num s3">3</div>
+                    <div>
+                        <div class="how-step-title">Download</div>
+                        <div class="how-step-desc">Hazir plugin'i sunucuya yukle</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <div class="info-row"><span class="info-label">PLATFORM</span><span class="info-value">Spigot</span></div>
+                <div class="info-row"><span class="info-label">MC VERSION</span><span class="info-value">1.21</span></div>
+                <div class="info-row"><span class="info-label">JAVA</span><span class="info-value">21</span></div>
+                <div class="info-row"><span class="info-label">AI MODEL</span><span class="info-value">qwen2.5-coder:14b</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== EDIT MODE (Premium) ========== -->
+<div id="editMode" class="wizard-container" style="display:none;">
+    <!-- Header -->
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <button class="btn btn-sm btn-outline-secondary page-back" onclick="exitEditMode()" title="Geri" aria-label="Geri"><i class="bi bi-arrow-left"></i></button>
+        <div class="flex-fill">
+            <h4 class="text-white mb-0"><i class="bi bi-pencil-square text-warning"></i> <span id="editPluginTitle">Plugin</span></h4>
+            <div class="d-flex gap-2 mt-1" id="editBadges">
+                <span class="badge bg-dark"><i class="bi bi-puzzle"></i> Spigot 1.21</span>
+                <span class="badge bg-dark" id="editBadgeFiles"><i class="bi bi-files"></i> ...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Stepper -->
+    <div class="stepper-bar">
+        <div class="stepper-step active" id="eStep1">
+            <div class="step-icon" style="background:rgba(94,230,240,.12);color:var(--diamond);"><i class="bi bi-search"></i></div>
+            <div><div class="step-title">Analyze</div><div class="step-desc">Mevcut kodu incele</div></div>
+        </div>
+        <div class="stepper-step disabled" id="eStep2">
+            <div class="step-icon" style="background:rgba(247,194,74,.12);color:var(--gold);"><i class="bi bi-chat-dots-fill"></i></div>
+            <div><div class="step-title">Modify</div><div class="step-desc">AI ile degistir</div></div>
+        </div>
+        <div class="stepper-step disabled" id="eStep3">
+            <div class="step-icon" style="background:rgba(167,139,250,.14);color:var(--amethyst);"><i class="bi bi-rocket-takeoff-fill"></i></div>
+            <div><div class="step-title">Build & Deploy</div><div class="step-desc">Derle ve yukle</div></div>
+        </div>
+    </div>
+
+    <div class="wizard-body">
+        <div class="wizard-main">
+            <!-- EDIT STEP 1: Analyze -->
+            <div id="editStep1">
+                <div id="editAnalyzeLoading" class="wiz-card">
+                    <div class="wiz-card-body text-center py-5">
+                        <div class="wizard-spinner" style="width:32px;height:32px;border-width:4px;"></div>
+                        <p class="text-muted mt-3 mb-0">Plugin analiz ediliyor...</p>
+                    </div>
+                </div>
+                <div id="editAnalyzeReady" style="display:none;">
+                    <div class="edit-stats-grid mb-3" id="editStats"></div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="wiz-card" style="height:400px;">
+                                <div class="wiz-card-header">
+                                    <i class="bi bi-folder2-open text-warning"></i>
+                                    <h5>Dosyalar</h5>
+                                </div>
+                                <div class="wiz-card-body" id="editFileTree" style="overflow-y:auto; max-height:320px;"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="wiz-card" style="height:400px;">
+                                <div class="wiz-card-header">
+                                    <i class="bi bi-file-earmark-code text-info"></i>
+                                    <h5 id="editPreviewTitle">Kod Onizleme</h5>
+                                </div>
+                                <div class="wiz-card-body" style="overflow:auto; max-height:320px; padding:0;">
+                                    <pre id="editPreviewCode" class="edit-code-block">Soldaki bir dosyaya tikla</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-mc-gold w-100 mt-3 py-2" onclick="editGoToModify()">
+                        <i class="bi bi-chat-dots-fill"></i> AI ile Degistir
+                    </button>
+                </div>
+            </div>
+
+            <!-- EDIT STEP 2: AI Modify -->
+            <div id="editStep2" style="display:none;">
+                <div class="row g-3">
+                    <div class="col-lg-5">
+                        <div class="wiz-card" style="height:580px; display:flex; flex-direction:column;">
+                            <div class="wiz-card-header">
+                                <i class="bi bi-robot text-info"></i>
+                                <h5>AI Asistan</h5>
+                                <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="clearEditChat()" title="Temizle"><i class="bi bi-trash3"></i></button>
+                            </div>
+                            <div id="editChatMessages" class="edit-chat-container"></div>
+                            <div class="edit-chat-input-area">
+                                <div class="input-group">
+                                    <input type="text" id="editChatInput" class="form-control" placeholder="Ne değiştirmek istiyorsun?" />
+                                    <button class="btn btn-mc-gold" onclick="sendEditChat()" id="btnEditSend"><i class="bi bi-send-fill"></i></button>
+                                </div>
+                                <div class="edit-chat-hints">
+                                    <span class="edit-hint-chip" onclick="insertEditHint('Yeni bir komut ekle:')"><i class="bi bi-terminal"></i> Komut</span>
+                                    <span class="edit-hint-chip" onclick="insertEditHint('Yeni bir event listener ekle:')"><i class="bi bi-lightning"></i> Event</span>
+                                    <span class="edit-hint-chip" onclick="insertEditHint('Config dosyasi destegi ekle')"><i class="bi bi-gear"></i> Config</span>
+                                    <span class="edit-hint-chip" onclick="insertEditHint('Bu hatayi duzelt:')"><i class="bi bi-bug"></i> Bug Fix</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="wiz-card" style="height:580px; display:flex; flex-direction:column;">
+                            <div class="wiz-card-header">
+                                <i class="bi bi-code-slash text-success"></i>
+                                <h5>Kod</h5>
+                                <span class="badge bg-dark text-muted small ms-auto" id="editCodeFileCount">0 dosya</span>
+                            </div>
+                            <div class="edit-file-tabs" id="editCodeTabs"></div>
+                            <div class="flex-fill" style="overflow:auto; padding:0;">
+                                <pre id="editCodeView" class="edit-code-block" style="min-height:100%;">AI'dan gelen kod burada gorunecek...</pre>
+                            </div>
+                            <div style="padding:12px; border-top:1px solid var(--line);">
+                                <button class="btn btn-mc w-100 py-2" id="btnEditBuild" onclick="startEditBuild()">
+                                    <i class="bi bi-hammer"></i> Derle & Deploy
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EDIT STEP 3: Build & Deploy -->
+            <div id="editStep3" style="display:none;">
+                <div class="wiz-card">
+                    <div class="wiz-card-header">
+                        <i class="bi bi-rocket-takeoff-fill" style="color:var(--amethyst);"></i>
+                        <h5>Build & Deploy</h5>
+                    </div>
+                    <div class="wiz-card-body" id="editBuildContent"></div>
+                </div>
+                <div class="mt-3 d-flex gap-2" id="editBuildActions" style="display:none;">
+                    <button class="btn btn-outline-warning" onclick="editGoToModify()"><i class="bi bi-arrow-left"></i> Degistirmeye Don</button>
+                    <button class="btn btn-outline-secondary" onclick="exitEditMode()"><i class="bi bi-house"></i> Ana Sayfa</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="wizard-sidebar">
+            <div class="sidebar-card">
+                <h6><i class="bi bi-info-circle-fill"></i> Plugin Detayları</h6>
+                <div id="editPluginDetails">
+                    <div class="text-center py-3"><div class="wizard-spinner"></div></div>
+                </div>
+            </div>
+            <div class="sidebar-card">
+                <h6><i class="bi bi-lightbulb-fill"></i> Düzenleme İpuçları</h6>
+                <div class="how-step"><div class="how-step-num s1">1</div><div><div class="how-step-title">Incele</div><div class="how-step-desc">Mevcut yapiyi ve kodu gor</div></div></div>
+                <div class="how-step"><div class="how-step-num s2">2</div><div><div class="how-step-title">Tanimla</div><div class="how-step-desc">Degisikligi detayli anlat</div></div></div>
+                <div class="how-step"><div class="how-step-num s3">3</div><div><div class="how-step-title">Derle</div><div class="how-step-desc">Otomatik duzeltme ile deploy</div></div></div>
+            </div>
+            <div class="sidebar-card">
+                <h6><i class="bi bi-magic"></i> Örnek İstekler</h6>
+                <div class="edit-example-list">
+                    <div class="edit-example" onclick="insertEditHint('Yeni /spawn komutu ekle, oyuncuyu spawn noktasina isinlasin')"><i class="bi bi-terminal text-warning"></i> /spawn komutu</div>
+                    <div class="edit-example" onclick="insertEditHint('Oyuncu olunce particle efekt gostersin')"><i class="bi bi-stars text-info"></i> Olum efekti</div>
+                    <div class="edit-example" onclick="insertEditHint('Config.yml dosyasindan ayarlari okusun')"><i class="bi bi-gear text-success"></i> Config destegi</div>
+                    <div class="edit-example" onclick="insertEditHint('Tum mesajlari Turkceye cevir ve renklendir')"><i class="bi bi-translate text-danger"></i> Turkce & renk</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+    // ========== STATE ==========
+    let state = {
+        pluginName: '',
+        description: '',
+        questions: [],
+        blueprint: null,
+        blueprintJson: '',
+        generatedCode: '',
+        editContext: null,
+        editHistory: '',
+        editCode: ''
+    };
+
+    // ========== WIZARD FLOW ==========
+    async function startWizard() {
+        const name = document.getElementById('pluginName').value.trim();
+        const desc = document.getElementById('pluginDesc').value.trim();
+        if (!name || !desc) { alert('Plugin adi ve aciklama gerekli!'); return; }
+
+        state.pluginName = name;
+        state.description = desc;
+
+        document.getElementById('stepCreate').style.display = 'none';
+        document.getElementById('wizardMain').style.display = 'block';
+        document.getElementById('wizPluginTitle').textContent = name;
+
+        // Show step 1
+        showStep(1);
+
+        // Get questions from AI
+        try {
+            const res = await fetch('/PluginBuilder/GetQuestions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description: desc })
+            });
+            const data = await res.json();
+            if (data.success && data.questions) {
+                state.questions = data.questions;
+                renderQuestions(data.questions);
+            } else {
+                document.getElementById('questionsList').innerHTML =
+                    '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ' + (data.error || 'Soru uretilemedi') + '</div>';
+            }
+        } catch (e) {
+            document.getElementById('questionsList').innerHTML =
+                '<div class="alert alert-danger">Baglanti hatasi: ' + e.message + '</div>';
+        }
+    }
+
+    function renderQuestions(questions) {
+        let html = '';
+        questions.forEach((q, i) => {
+            html += `
+            <div class="question-item">
+                <div class="d-flex align-items-start">
+                    <span class="q-number" id="qnum${i}">${i + 1}</span>
+                    <div class="flex-fill">
+                        <div class="q-text">${escapeHtml(q.question)}</div>
+                        <input type="text" class="form-control q-input" id="qanswer${i}"
+                               placeholder="${escapeHtml(q.placeholder || 'Cevabin...')}"
+                               oninput="updateQuestionProgress()" />
+                    </div>
+                </div>
+            </div>`;
+        });
+        document.getElementById('questionsList').innerHTML = html;
+        document.getElementById('btnSubmitAnswers').disabled = false;
+        updateQuestionProgress();
+    }
+
+    function updateQuestionProgress() {
+        const total = state.questions.length || 5;
+        let answered = 0;
+        for (let i = 0; i < total; i++) {
+            const el = document.getElementById('qanswer' + i);
+            const numEl = document.getElementById('qnum' + i);
+            if (el && el.value.trim()) {
+                answered++;
+                if (numEl) numEl.classList.add('answered');
+            } else {
+                if (numEl) numEl.classList.remove('answered');
+            }
+        }
+        const pct = Math.round((answered / total) * 100);
+        document.getElementById('questionProgress').style.width = pct + '%';
+        document.getElementById('questionCount').textContent = answered + '/' + total;
+    }
+
+    async function submitAnswers() {
+        const answers = state.questions.map((q, i) => {
+            const el = document.getElementById('qanswer' + i);
+            return { id: q.id, question: q.question, answer: el ? el.value.trim() : '', placeholder: q.placeholder };
+        });
+
+        document.getElementById('btnSubmitAnswers').disabled = true;
+        document.getElementById('btnSubmitAnswers').innerHTML = '<div class="wizard-spinner"></div> Blueprint hazirlaniyor...';
+
+        try {
+            const res = await fetch('/PluginBuilder/GenerateBlueprint', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: state.pluginName, description: state.description, answers })
+            });
+            const data = await res.json();
+            if (data.success && data.blueprint) {
+                state.blueprint = data.blueprint;
+                state.blueprintJson = data.blueprint.rawBlueprintJson || JSON.stringify(data.blueprint);
+                showStep(2);
+                renderBlueprint(data.blueprint);
+            } else {
+                alert('Blueprint olusturulamadi: ' + (data.error || 'Bilinmeyen hata'));
+                document.getElementById('btnSubmitAnswers').disabled = false;
+                document.getElementById('btnSubmitAnswers').innerHTML = '<i class="bi bi-check2-circle"></i> Gonder & Devam Et';
+            }
+        } catch (e) {
+            alert('Baglanti hatasi: ' + e.message);
+            document.getElementById('btnSubmitAnswers').disabled = false;
+            document.getElementById('btnSubmitAnswers').innerHTML = '<i class="bi bi-check2-circle"></i> Gonder & Devam Et';
+        }
+    }
+
+    function renderBlueprint(bp) {
+        const g = bp.general || {};
+        const cmds = bp.commands || [];
+        const perms = bp.permissions || [];
+        const stories = bp.userStories || [];
+        const tech = bp.technical || {};
+        const events = tech.eventListeners || [];
+        const classes = tech.classes || [];
+        const apis = tech.apiMethods || [];
+
+        let html = '';
+
+        // General Info
+        html += `<div class="wiz-card"><div class="wiz-card-header" onclick="toggleSection('secGeneral')">
+            <i class="bi bi-info-circle-fill text-info"></i><h5>General Information</h5>
+            <i class="bi bi-chevron-up ms-auto text-muted" id="secGeneralIcon"></i>
+        </div><div class="wiz-card-body" id="secGeneral">
+            <p class="text-muted" style="line-height:1.7;">${escapeHtml(g.detailedDescription || g.summary || bp.description || '')}</p>
+            ${(g.features||[]).length ? '<div class="mt-2"><strong class="text-white small">Ozellikler:</strong><ul class="text-muted small mt-1">' + (g.features||[]).map(f=>'<li>'+escapeHtml(f)+'</li>').join('') + '</ul></div>' : ''}
+        </div></div>`;
+
+        // Commands & Permissions
+        html += `<div class="wiz-card"><div class="wiz-card-header" onclick="toggleSection('secCmds')">
+            <i class="bi bi-terminal-fill text-warning"></i><h5>Commands & Permissions</h5>
+            <span class="badge bg-secondary ms-2">${cmds.length + perms.length}</span>
+            <i class="bi bi-chevron-up ms-auto text-muted" id="secCmdsIcon"></i>
+        </div><div class="wiz-card-body" id="secCmds">`;
+        if (cmds.length) {
+            cmds.forEach(c => {
+                html += `<div class="mb-2"><code class="text-warning">${escapeHtml(c.name)}</code> — <span class="text-muted small">${escapeHtml(c.description)}</span>
+                ${c.permission ? '<br><span class="text-muted small">Izin: <code>'+escapeHtml(c.permission)+'</code></span>' : ''}</div>`;
+            });
+        }
+        if (perms.length) {
+            html += '<div class="mt-2"><strong class="text-white small">Permissions:</strong></div>';
+            perms.forEach(p => {
+                html += `<div class="small text-muted"><code>${escapeHtml(p.node)}</code> — ${escapeHtml(p.description)} (default: ${p.default || 'op'})</div>`;
+            });
+        }
+        if (!cmds.length && !perms.length) html += '<p class="text-muted small">Komut veya izin tanimlanmamis.</p>';
+        html += '</div></div>';
+
+        // User Stories
+        if (stories.length) {
+            html += `<div class="wiz-card"><div class="wiz-card-header" onclick="toggleSection('secStories')">
+                <i class="bi bi-people-fill text-success"></i><h5>User Stories</h5>
+                <span class="badge bg-secondary ms-2">${stories.length}</span>
+                <i class="bi bi-chevron-up ms-auto text-muted" id="secStoriesIcon"></i>
+            </div><div class="wiz-card-body" id="secStories">`;
+            stories.forEach(s => {
+                const tagClass = s.role === 'ADMIN' ? 'bp-tag-yellow' : s.role === 'DEVELOPER' ? 'bp-tag-purple' : 'bp-tag-green';
+                html += `<div class="story-card"><span class="bp-tag ${tagClass}">${escapeHtml(s.role)}</span>
+                    <p class="text-muted small mb-0 mt-1">${escapeHtml(s.story)}</p></div>`;
+            });
+            html += '</div></div>';
+        }
+
+        // Technical Details
+        html += `<div class="wiz-card"><div class="wiz-card-header" onclick="toggleSection('secTech')">
+            <i class="bi bi-gear-fill text-danger"></i><h5>Technical Details</h5>
+            <i class="bi bi-chevron-up ms-auto text-muted" id="secTechIcon"></i>
+        </div><div class="wiz-card-body" id="secTech">`;
+
+        if (events.length) {
+            html += '<div class="small text-muted text-uppercase fw-bold mb-2">Event Listeners</div>';
+            events.forEach(e => {
+                html += `<div class="d-flex align-items-center gap-2 mb-2">
+                    <code class="bp-tag bp-tag-blue">${escapeHtml(e.eventName)}</code>
+                    <span class="text-muted small flex-fill">${escapeHtml(e.description)}</span>
+                    ${e.verified ? '<i class="bi bi-check-circle-fill verified-icon"></i>' : ''}
+                </div>`;
+            });
+        }
+
+        if (classes.length) {
+            html += '<div class="small text-muted text-uppercase fw-bold mb-2 mt-3">Classes</div>';
+            classes.forEach(c => {
+                const typeTag = c.type === 'MAIN CLASS' ? 'bp-tag-green' : c.type === 'EVENT LISTENER CLASS' ? 'bp-tag-blue' : c.type === 'MANAGER' ? 'bp-tag-purple' : 'bp-tag-yellow';
+                html += `<div class="d-flex align-items-start gap-2 mb-2">
+                    <span class="bp-tag ${typeTag}">${escapeHtml(c.type)}</span>
+                    <div><strong class="text-white">${escapeHtml(c.name)}</strong>
+                    <p class="text-muted small mb-0">${escapeHtml(c.description)}</p></div>
+                </div>`;
+            });
+        }
+
+        if (apis.length) {
+            html += '<div class="small text-muted text-uppercase fw-bold mb-2 mt-3">API Methods</div>';
+            apis.forEach(a => {
+                html += `<div class="d-flex align-items-center gap-2 mb-2">
+                    <code class="bp-tag bp-tag-red">${escapeHtml(a.signature)}</code>
+                    <span class="text-muted small">${escapeHtml(a.source)}</span>
+                    <span class="text-muted small flex-fill">${escapeHtml(a.description)}</span>
+                    ${a.verified ? '<i class="bi bi-check-circle-fill verified-icon"></i>' : ''}
+                </div>`;
+            });
+        }
+        html += '</div></div>';
+
+        document.getElementById('blueprintContent').innerHTML = html;
+        document.getElementById('btnGenerateRelease').style.display = 'block';
+    }
+
+    function toggleSection(id) {
+        const el = document.getElementById(id);
+        const ico = document.getElementById(id + 'Icon');
+        if (el.style.display === 'none') {
+            el.style.display = 'block';
+            if (ico) ico.className = 'bi bi-chevron-up ms-auto text-muted';
+        } else {
+            el.style.display = 'none';
+            if (ico) ico.className = 'bi bi-chevron-down ms-auto text-muted';
+        }
+    }
+
+    async function generateRelease() {
+        showStep(3);
+
+        document.getElementById('buildStatus').innerHTML = `
+            <div class="text-center py-4">
+                <div class="wizard-spinner"></div>
+                <p class="text-warning mt-3 fw-bold">Kod uretiliyor ve derleniyor...</p>
+                <p class="text-muted small">AI plugin kodunu yaziyor, Maven ile derliyor. Hatalar otomatik duzeltilecek.<br>Bu islem 1-5 dakika surebilir.</p>
+            </div>`;
+
+        try {
+            const res = await fetch('/PluginBuilder/GenerateAndBuild', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pluginName: state.pluginName, blueprintJson: state.blueprintJson })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                state.generatedCode = data.code || '';
+                document.getElementById('buildStatus').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size:3rem;"></i>
+                        <h4 class="text-success mt-3">Basariyla Derlendi!</h4>
+                        <p class="text-muted">${escapeHtml(data.message || '')}</p>
+                        ${data.retries ? '<p class="text-muted small">Otomatik duzeltme sayisi: ' + data.retries + '</p>' : ''}
+                        <div class="mt-3">
+                            <p class="text-warning"><i class="bi bi-info-circle"></i> Plugin sunucuya deploy edildi. Sunucuyu yeniden baslatin.</p>
+                        </div>
+                    </div>`;
+            } else {
+                const errorHtml = data.error ? escapeHtml(data.error) : 'Bilinmeyen hata';
+                const buildOutput = data.buildOutput ? `<div class="build-output mt-3">${escapeHtml(data.buildOutput)}</div>` : '';
+                document.getElementById('buildStatus').innerHTML = `
+                    <div class="py-3">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-x-circle-fill text-danger" style="font-size:1.5rem;"></i>
+                            <h5 class="text-danger mb-0">Derleme Basarisiz</h5>
+                        </div>
+                        <pre class="build-output">${errorHtml}</pre>
+                        ${buildOutput}
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-mc-gold" onclick="generateRelease()"><i class="bi bi-arrow-repeat"></i> Tekrar Dene</button>
+                            <button class="btn btn-outline-secondary" onclick="showStep(2)"><i class="bi bi-arrow-left"></i> Blueprint'e Don</button>
+                        </div>
+                    </div>`;
+            }
+        } catch (e) {
+            document.getElementById('buildStatus').innerHTML = `
+                <div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Baglanti hatasi: ${escapeHtml(e.message)}</div>
+                <button class="btn btn-mc-gold mt-2" onclick="generateRelease()"><i class="bi bi-arrow-repeat"></i> Tekrar Dene</button>`;
+        }
+    }
+
+    function showStep(step) {
+        // Hide all steps
+        ['stepQuestions', 'stepBlueprint', 'stepBuild'].forEach(id => {
+            document.getElementById(id).style.display = 'none';
+        });
+
+        // Show target step
+        if (step === 1) document.getElementById('stepQuestions').style.display = 'block';
+        if (step === 2) document.getElementById('stepBlueprint').style.display = 'block';
+        if (step === 3) document.getElementById('stepBuild').style.display = 'block';
+
+        // Update stepper
+        for (let i = 1; i <= 3; i++) {
+            const s = document.getElementById('stepper' + i);
+            s.classList.remove('active', 'completed', 'disabled');
+            if (i < step) s.classList.add('completed');
+            else if (i === step) s.classList.add('active');
+            else s.classList.add('disabled');
+        }
+    }
+
+    function goBack() {
+        document.getElementById('wizardMain').style.display = 'none';
+        document.getElementById('stepCreate').style.display = 'block';
+    }
+
+    // ========== EDIT MODE (Premium) ==========
+    let editState = {
+        pluginName: '',
+        cleanName: '',
+        files: {},
+        rawCode: '',
+        chatHistory: '',
+        parsedFiles: [],
+        activeTabIdx: 0,
+        isBuilding: false
+    };
+
+    function loadPluginSource(name) { editPluginWithAI(name); }
+
+    async function editPluginWithAI(name) {
+        editState = { pluginName: name, cleanName: name.replace(/Project$/, ''), files: {}, rawCode: '', chatHistory: '', parsedFiles: [], activeTabIdx: 0, isBuilding: false };
+
+        document.getElementById('stepCreate').style.display = 'none';
+        document.getElementById('wizardMain').style.display = 'none';
+        document.getElementById('editMode').style.display = 'block';
+        document.getElementById('editPluginTitle').textContent = editState.cleanName;
+        editShowStep(1);
+        document.getElementById('editAnalyzeLoading').style.display = 'block';
+        document.getElementById('editAnalyzeReady').style.display = 'none';
+        document.getElementById('editPluginDetails').innerHTML = '<div class="text-center py-3"><div class="wizard-spinner"></div></div>';
+        document.getElementById('editChatMessages').innerHTML = '';
+
+        try {
+            const res = await fetch('/PluginBuilder/GetPluginSource?name=' + encodeURIComponent(name));
+            const data = await res.json();
+            if (data.success && data.files) {
+                editState.files = data.files;
+                let allCode = '';
+                for (const [path, content] of Object.entries(data.files)) {
+                    const ext = path.endsWith('.xml') ? 'xml' : path.endsWith('.yml') ? 'yaml' : 'java';
+                    allCode += '// FILE: ' + path + '\n```' + ext + '\n' + content + '\n```\n\n';
+                }
+                editState.rawCode = allCode;
+                editState.parsedFiles = Object.entries(data.files).map(([p, c]) => ({ path: p, content: c }));
+                renderEditAnalysis(data.files);
+                document.getElementById('editBadgeFiles').innerHTML = '<i class="bi bi-files"></i> ' + Object.keys(data.files).length + ' dosya';
+                document.getElementById('editAnalyzeLoading').style.display = 'none';
+                document.getElementById('editAnalyzeReady').style.display = 'block';
+            } else {
+                document.getElementById('editAnalyzeLoading').innerHTML = '<div class="wiz-card-body"><div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle"></i> ' + escapeHtml(data.error || 'Plugin yuklenemedi') + '</div></div>';
+            }
+        } catch (e) {
+            document.getElementById('editAnalyzeLoading').innerHTML = '<div class="wiz-card-body"><div class="alert alert-danger mb-0">Baglanti hatasi: ' + escapeHtml(e.message) + '</div></div>';
+        }
+    }
+
+    function renderEditAnalysis(files) {
+        const paths = Object.keys(files);
+        const javaFiles = paths.filter(p => p.endsWith('.java'));
+        const totalLines = Object.values(files).reduce((s, c) => s + c.split('\n').length, 0);
+        const cmds = new Set();
+        const events = new Set();
+        Object.values(files).forEach(c => {
+            for (const m of c.matchAll(/getCommand\(["'](\w+)["']\)/g)) cmds.add('/' + m[1]);
+            for (const m of c.matchAll(/@@EventHandler[\s\S]*?public\s+void\s+\w+\((\w+Event)/g)) events.add(m[1]);
+        });
+
+        document.getElementById('editStats').innerHTML =
+            '<div class="edit-stat-card"><div class="edit-stat-icon text-info"><i class="bi bi-files"></i></div><div class="edit-stat-value">' + paths.length + '</div><div class="edit-stat-label">Dosya</div></div>' +
+            '<div class="edit-stat-card"><div class="edit-stat-icon text-warning"><i class="bi bi-filetype-java"></i></div><div class="edit-stat-value">' + javaFiles.length + '</div><div class="edit-stat-label">Java Sınıfı</div></div>' +
+            '<div class="edit-stat-card"><div class="edit-stat-icon text-success"><i class="bi bi-code"></i></div><div class="edit-stat-value">' + totalLines + '</div><div class="edit-stat-label">Satır</div></div>' +
+            '<div class="edit-stat-card"><div class="edit-stat-icon text-danger"><i class="bi bi-terminal"></i></div><div class="edit-stat-value">' + cmds.size + '</div><div class="edit-stat-label">Komut</div></div>';
+
+        // File tree
+        let treeHtml = '';
+        paths.forEach((p, i) => {
+            const fn = p.split('/').pop();
+            const icon = getFileIcon(fn);
+            treeHtml += '<div class="edit-file-item' + (i === 0 ? ' active' : '') + '" onclick="previewEditFile(' + i + ')" data-idx="' + i + '">' +
+                '<i class="file-icon ' + icon.cls + '" style="color:' + icon.color + '"></i>' +
+                '<div><div class="file-name">' + escapeHtml(fn) + '</div><div class="file-path">' + escapeHtml(p) + '</div></div></div>';
+        });
+        document.getElementById('editFileTree').innerHTML = treeHtml;
+
+        // Plugin details sidebar
+        let detailsHtml = '';
+        const ymlEntry = Object.entries(files).find(([p]) => p.endsWith('plugin.yml'));
+        if (ymlEntry) {
+            const nameM = ymlEntry[1].match(/^name:\s*(.+)$/m);
+            const verM = ymlEntry[1].match(/^version:\s*(.+)$/m);
+            const mainM = ymlEntry[1].match(/^main:\s*(.+)$/m);
+            if (nameM) detailsHtml += '<div class="info-row"><span class="info-label">ADI</span><span class="info-value">' + escapeHtml(nameM[1].trim()) + '</span></div>';
+            if (verM) detailsHtml += '<div class="info-row"><span class="info-label">VERSIYON</span><span class="info-value">' + escapeHtml(verM[1].trim()) + '</span></div>';
+            if (mainM) detailsHtml += '<div class="info-row"><span class="info-label">MAIN CLASS</span><span class="info-value" style="font-size:0.7rem;">' + escapeHtml(mainM[1].trim()) + '</span></div>';
+        }
+        detailsHtml += '<div class="info-row"><span class="info-label">JAVA DOSYA</span><span class="info-value">' + javaFiles.length + '</span></div>';
+        detailsHtml += '<div class="info-row"><span class="info-label">TOPLAM SATIR</span><span class="info-value">' + totalLines + '</span></div>';
+        if (cmds.size) detailsHtml += '<div class="info-row"><span class="info-label">KOMUTLAR</span><span class="info-value">' + [...cmds].join(', ') + '</span></div>';
+        if (events.size) detailsHtml += '<div class="info-row"><span class="info-label">EVENTLER</span><span class="info-value">' + events.size + '</span></div>';
+        detailsHtml += '<div class="info-row"><span class="info-label">PLATFORM</span><span class="info-value">Spigot 1.21</span></div>';
+        detailsHtml += '<div class="info-row"><span class="info-label">JAVA</span><span class="info-value">21</span></div>';
+        document.getElementById('editPluginDetails').innerHTML = detailsHtml;
+
+        if (paths.length > 0) previewEditFile(0);
+    }
+
+    function getFileIcon(fn) {
+        if (fn === 'pom.xml') return { cls: 'bi bi-file-earmark-ruled-fill', color: '#ef4444' };
+        if (fn === 'plugin.yml') return { cls: 'bi bi-gear-wide-connected', color: '#fbbf24' };
+        if (fn.endsWith('.java')) return { cls: 'bi bi-filetype-java', color: '#f97316' };
+        if (fn.endsWith('.xml')) return { cls: 'bi bi-filetype-xml', color: '#ef4444' };
+        if (fn.endsWith('.yml') || fn.endsWith('.yaml')) return { cls: 'bi bi-filetype-yml', color: '#fbbf24' };
+        return { cls: 'bi bi-file-earmark-text', color: '#94a3b8' };
+    }
+
+    function previewEditFile(idx) {
+        const paths = Object.keys(editState.files);
+        if (idx >= paths.length) return;
+        document.getElementById('editPreviewCode').textContent = editState.files[paths[idx]];
+        document.getElementById('editPreviewTitle').textContent = paths[idx].split('/').pop();
+        document.querySelectorAll('#editFileTree .edit-file-item').forEach((el, i) => el.classList.toggle('active', i === idx));
+    }
+
+    function editGoToModify() {
+        editShowStep(2);
+        renderEditCodeTabs(editState.parsedFiles);
+        if (!document.getElementById('editChatMessages').children.length) {
+            addEditChatMsg('Plugin yuklendi (' + editState.parsedFiles.length + ' dosya). Ne degistirmek istiyorsun?', 'ai');
+        }
+        setTimeout(() => document.getElementById('editChatInput')?.focus(), 100);
+    }
+
+    function editShowStep(step) {
+        ['editStep1', 'editStep2', 'editStep3'].forEach(id => document.getElementById(id).style.display = 'none');
+        document.getElementById('editStep' + step).style.display = 'block';
+        for (let i = 1; i <= 3; i++) {
+            const el = document.getElementById('eStep' + i);
+            el.classList.remove('active', 'completed', 'disabled');
+            if (i < step) el.classList.add('completed');
+            else if (i === step) el.classList.add('active');
+            else el.classList.add('disabled');
+        }
+    }
+
+    function renderEditCodeTabs(files) {
+        if (!files.length) return;
+        let html = '';
+        files.forEach((f, i) => {
+            const fn = f.path.split('/').pop();
+            const icon = getFileIcon(fn);
+            html += '<div class="edit-file-tab' + (i === 0 ? ' active' : '') + '" onclick="switchEditTab(' + i + ')">' +
+                '<i class="tab-icon ' + icon.cls + '" style="color:' + icon.color + '"></i> ' + escapeHtml(fn) + '</div>';
+        });
+        document.getElementById('editCodeTabs').innerHTML = html;
+        document.getElementById('editCodeFileCount').textContent = files.length + ' dosya';
+        switchEditTab(0);
+    }
+
+    function switchEditTab(idx) {
+        if (idx >= editState.parsedFiles.length) return;
+        editState.activeTabIdx = idx;
+        document.getElementById('editCodeView').textContent = editState.parsedFiles[idx].content;
+        document.querySelectorAll('.edit-file-tab').forEach((el, i) => el.classList.toggle('active', i === idx));
+    }
+
+    // Chat
+    async function sendEditChat() {
+        const input = document.getElementById('editChatInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        addEditChatMsg(msg, 'user');
+        input.value = '';
+        input.disabled = true;
+        document.getElementById('btnEditSend').disabled = true;
+
+        const typingId = showEditTyping();
+        const codeContext = editState.rawCode
+            ? '\n--- MEVCUT PLUGIN: ' + editState.pluginName + ' ---\n' + editState.rawCode + '\nISTEK: ' + msg
+            : msg;
+
+        try {
+            const res = await fetch('/PluginBuilder/Chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: codeContext, history: editState.chatHistory })
+            });
+            const data = await res.json();
+            removeEditTyping(typingId);
+
+            if (data.success) {
+                addEditChatMsg(data.content, 'ai');
+                editState.chatHistory += '\nKullanici: ' + msg + '\nAI: ' + data.content + '\n';
+                editState.rawCode = data.content;
+                const parsed = parseEditFiles(data.content);
+                if (parsed.length > 0) {
+                    editState.parsedFiles = parsed;
+                    renderEditCodeTabs(parsed);
+                }
+            } else {
+                addEditChatMsg('Hata: ' + (data.error || 'Bilinmeyen'), 'ai');
+            }
+        } catch (e) {
+            removeEditTyping(typingId);
+            addEditChatMsg('Baglanti hatasi: ' + e.message, 'ai');
+        }
+        input.disabled = false;
+        document.getElementById('btnEditSend').disabled = false;
+        input.focus();
+    }
+
+    function addEditChatMsg(text, type) {
+        const c = document.getElementById('editChatMessages');
+        const d = document.createElement('div');
+        d.className = 'edit-chat-msg ' + type;
+        if (type === 'user') {
+            d.innerHTML = '<div class="edit-chat-sender">Sen</div><div class="edit-chat-bubble">' + escapeHtml(text) + '</div>';
+        } else {
+            let rendered = text;
+            try { rendered = marked.parse(text); } catch (e) { rendered = escapeHtml(text); }
+            d.innerHTML = '<div class="edit-chat-sender">AI Asistan</div><div class="edit-chat-bubble">' + rendered + '</div>';
+        }
+        c.appendChild(d);
+        c.scrollTop = c.scrollHeight;
+    }
+
+    let _typingCounter = 0;
+    function showEditTyping() {
+        const id = 'typing-' + (++_typingCounter);
+        const c = document.getElementById('editChatMessages');
+        const d = document.createElement('div');
+        d.className = 'edit-chat-msg ai';
+        d.id = id;
+        d.innerHTML = '<div class="edit-chat-sender">AI Asistan</div><div class="edit-chat-bubble"><div class="edit-typing-dots"><span></span><span></span><span></span></div></div>';
+        c.appendChild(d);
+        c.scrollTop = c.scrollHeight;
+        return id;
+    }
+
+    function removeEditTyping(id) { document.getElementById(id)?.remove(); }
+
+    function clearEditChat() {
+        document.getElementById('editChatMessages').innerHTML = '';
+        editState.chatHistory = '';
+        addEditChatMsg('Sohbet temizlendi. Ne yapmak istiyorsun?', 'ai');
+    }
+
+    function insertEditHint(text) {
+        const input = document.getElementById('editChatInput');
+        if (input) { input.value = text; input.focus(); }
+    }
+
+    function parseEditFiles(code) {
+        const files = [];
+        const pattern = /\/\/\s*FILE:\s*(.+?)\s*\n```(?:java|xml|ya?ml)\s*\n([\s\S]*?)```/g;
+        let m;
+        while ((m = pattern.exec(code)) !== null) {
+            files.push({ path: m[1].trim(), content: m[2].trim() });
+        }
+        return files;
+    }
+
+    // Build
+    async function startEditBuild() {
+        if (editState.isBuilding) return;
+        editState.isBuilding = true;
+        editShowStep(3);
+
+        const phases = [
+            { icon: 'bi-file-earmark-code', label: 'Kod Ayristirma', desc: 'Dosyalar ayristiriliyor...' },
+            { icon: 'bi-gear-wide-connected', label: 'Derleme', desc: 'Maven ile derleniyor...' },
+            { icon: 'bi-box-seam', label: 'Paketleme', desc: 'JAR dosyasi olusturuluyor...' },
+            { icon: 'bi-cloud-upload', label: 'Deploy', desc: 'Sunucuya yukleniyor...' }
+        ];
+
+        function renderPhases(statuses) {
+            return '<div class="edit-build-phases">' + phases.map((p, i) => {
+                const st = statuses[i] || 'pending';
+                const iconHtml = st === 'done' ? '<i class="bi bi-check-lg"></i>' : st === 'error' ? '<i class="bi bi-x-lg"></i>' : '<i class="bi ' + p.icon + '"></i>';
+                return '<div class="edit-build-phase ' + st + '"><div class="edit-phase-icon">' + iconHtml + '</div><div><div class="edit-phase-label">' + p.label + '</div><div class="edit-phase-desc">' + p.desc + '</div></div></div>';
+            }).join('') + '</div>';
+        }
+
+        const pluginName = editState.cleanName;
+        const sourcePlugin = editState.pluginName;
+        const MAX_RETRIES = 5;
+        let currentCode = editState.rawCode;
+
+        let statuses = ['active', 'pending', 'pending', 'pending'];
+        document.getElementById('editBuildContent').innerHTML = renderPhases(statuses);
+        document.getElementById('editBuildActions').style.display = 'none';
+
+        const t1 = setTimeout(() => {
+            statuses = ['done', 'active', 'pending', 'pending'];
+            document.getElementById('editBuildContent').innerHTML = renderPhases(statuses);
+        }, 800);
+        const t2 = setTimeout(() => {
+            statuses = ['done', 'done', 'active', 'pending'];
+            document.getElementById('editBuildContent').innerHTML = renderPhases(statuses);
+        }, 4000);
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                if (attempt > 0) {
+                    document.getElementById('editBuildContent').innerHTML =
+                        '<div class="text-center py-2 mb-2"><span class="edit-retry-badge"><i class="bi bi-arrow-repeat"></i> Otomatik Duzeltme: ' + attempt + '. deneme</span></div>' +
+                        renderPhases(['done', 'active', 'pending', 'pending']);
+                }
+
+                const res = await fetch('/PluginBuilder/Build', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pluginName, code: currentCode, sourcePlugin })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    clearTimeout(t1); clearTimeout(t2);
+                    document.getElementById('editBuildContent').innerHTML =
+                        (attempt > 0 ? '<div class="text-center mb-2"><span class="edit-retry-badge"><i class="bi bi-check-lg"></i> ' + attempt + '. denemede basarili</span></div>' : '') +
+                        renderPhases(['done', 'done', 'done', 'done']) +
+                        '<div class="edit-success-container">' +
+                        '<div class="edit-success-icon"><i class="bi bi-check-circle-fill"></i></div>' +
+                        '<h4 class="text-success mt-3">Basariyla Derlendi!</h4>' +
+                        '<p class="text-muted">' + escapeHtml(data.message || '') + '</p>' +
+                        '<div class="mt-3"><p class="text-warning small"><i class="bi bi-info-circle"></i> Plugin sunucuya deploy edildi. Sunucuyu yeniden baslatin veya <code>/reload</code> yapin.</p></div>' +
+                        '</div>';
+                    document.getElementById('editBuildActions').style.display = 'flex';
+                    editState.isBuilding = false;
+                    return;
+                }
+
+                if (attempt < MAX_RETRIES && data.buildOutput) {
+                    const errors = extractMavenErrors(data.buildOutput);
+                    const fixRes = await fetch('/PluginBuilder/Chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: 'DERLEME HATASI:\n' + errors + '\nKOD:\n' + currentCode + '\nDUZELT!', history: '' })
+                    });
+                    const fixData = await fixRes.json();
+                    if (fixData.success) {
+                        currentCode = fixData.content;
+                        editState.rawCode = currentCode;
+                        const parsed = parseEditFiles(currentCode);
+                        if (parsed.length) editState.parsedFiles = parsed;
+                        continue;
+                    }
+                }
+
+                clearTimeout(t1); clearTimeout(t2);
+                document.getElementById('editBuildContent').innerHTML =
+                    renderPhases(['done', 'error', 'pending', 'pending']) +
+                    '<div class="mt-3"><div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-x-circle-fill text-danger" style="font-size:1.2rem;"></i> <strong class="text-danger">Derleme Basarisiz</strong></div>' +
+                    '<pre class="build-output">' + escapeHtml(data.error || data.buildOutput || 'Bilinmeyen hata') + '</pre></div>';
+                document.getElementById('editBuildActions').style.display = 'flex';
+                break;
+            } catch (e) {
+                clearTimeout(t1); clearTimeout(t2);
+                document.getElementById('editBuildContent').innerHTML =
+                    '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Baglanti hatasi: ' + escapeHtml(e.message) + '</div>';
+                document.getElementById('editBuildActions').style.display = 'flex';
+                break;
+            }
+        }
+        editState.isBuilding = false;
+    }
+
+    function exitEditMode() {
+        document.getElementById('editMode').style.display = 'none';
+        document.getElementById('stepCreate').style.display = 'block';
+    }
+
+    function extractMavenErrors(output) {
+        if (!output) return '';
+        return output.split('\n').filter(l =>
+            l.includes('[ERROR]') || l.includes('cannot find symbol') || l.includes('error:') || l.includes('COMPILATION ERROR')
+        ).slice(0, 20).join('\n') || output.substring(0, 1500);
+    }
+
+    function escapeHtml(t) {
+        const d = document.createElement('div');
+        d.textContent = t;
+        return d.innerHTML;
+    }
+
+    // Enter key for edit chat
+    document.getElementById('editChatInput')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendEditChat(); }
+    });
+    </script>
+}

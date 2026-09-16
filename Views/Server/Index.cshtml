@@ -1,0 +1,191 @@
+@{
+    ViewData["Title"] = "Sunucu";
+    var status = ViewBag.Status as McPanel.Services.ServerStatus;
+    var logs = ViewBag.RecentLogs as IEnumerable<string> ?? Array.Empty<string>();
+    var running = status?.IsRunning == true;
+}
+
+<div class="page-head">
+    <div>
+        <span class="eyebrow-sm"><i class="bi bi-hdd-rack"></i> Sunucu</span>
+        <h1 class="page-title">Sunucu yönetimi</h1>
+        <p class="page-sub">Sunucunu başlat, durdur ve konsol üzerinden canlı olarak komut gönder.</p>
+    </div>
+    <div class="page-actions">
+        <button id="btnStart" type="button" class="btn btn-grass" onclick="serverAction('start')" disabled="@running">
+            <i class="bi bi-play-fill"></i> Başlat
+        </button>
+        <button id="btnStop" type="button" class="btn btn-mc-danger" onclick="serverAction('stop')" disabled="@(!running)">
+            <i class="bi bi-stop-fill"></i> Durdur
+        </button>
+        <button id="btnRestart" type="button" class="btn btn-outline-secondary" onclick="serverAction('restart')">
+            <i class="bi bi-arrow-clockwise"></i> Yeniden Başlat
+        </button>
+    </div>
+</div>
+
+<div class="stat-grid">
+    <div class="stat">
+        <div class="stat-label"><i class="bi bi-activity"></i> Durum</div>
+        <div class="stat-value">
+            <span id="statusBadge" class="state-pill" data-status-pill data-state="@(running ? "on" : "off")">
+                <span class="status-dot"></span>
+                <span data-status-on="Çalışıyor" data-status-off="Kapalı">@(running ? "Çalışıyor" : "Kapalı")</span>
+            </span>
+        </div>
+    </div>
+    <div class="stat">
+        <div class="stat-label"><i class="bi bi-hash"></i> PID</div>
+        <div class="stat-value mono" id="pidDisplay" data-status-pid>@(status?.Pid?.ToString() ?? "-")</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label"><i class="bi bi-box"></i> JAR</div>
+        <div class="stat-value mono" title="@status?.JarFile">@status?.JarFile</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label"><i class="bi bi-folder2"></i> Sunucu yolu</div>
+        <div class="stat-value mono" title="@status?.ServerPath">@status?.ServerPath</div>
+    </div>
+</div>
+
+<section class="console-card" aria-label="Sunucu konsolu">
+    <div class="console-head">
+        <div class="term-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <span class="console-title"><i class="bi bi-terminal"></i> Konsol</span>
+        <div class="console-tools">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sendQuickCmd('list')"><i class="bi bi-people"></i> Oyuncular</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sendQuickCmd('tps')"><i class="bi bi-speedometer2"></i> TPS</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="sendQuickCmd('plugins')"><i class="bi bi-puzzle"></i> Pluginler</button>
+            <span class="sep" aria-hidden="true"></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearConsole()" title="Konsolu temizle"><i class="bi bi-trash3"></i> Temizle</button>
+        </div>
+    </div>
+
+    <div id="console" class="console-box" role="log" aria-live="polite">
+        @foreach (var log in logs)
+        {
+            <div>@log</div>
+        }
+    </div>
+
+    <div class="console-input">
+        <span class="prompt" aria-hidden="true">&gt;</span>
+        <input type="text" id="cmdInput" placeholder="Sunucu komutu yaz… (ör. say Merhaba)" autocomplete="off" spellcheck="false" aria-label="Sunucu komutu" />
+        <button type="button" class="btn btn-mc btn-sm" onclick="sendConsoleCommand()">
+            <i class="bi bi-send-fill"></i> Gönder
+        </button>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/consolehub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveLog", (message) => {
+            appendLog(message);
+        });
+
+        connection.start().catch(err => console.error("SignalR bağlantı hatası:", err));
+
+        function classifyLog(div, text) {
+            if (text.includes('[Panel]')) div.className = 'log-panel';
+            else if (text.includes('ERROR') || text.includes('Exception')) div.className = 'log-error';
+            else if (text.includes('WARN')) div.className = 'log-warn';
+            else if (text.includes('INFO')) div.className = 'log-info';
+        }
+
+        function appendLog(text) {
+            const con = document.getElementById('console');
+            const stick = con.scrollHeight - con.scrollTop - con.clientHeight < 40;
+            const div = document.createElement('div');
+            classifyLog(div, text);
+            div.textContent = text;
+            con.appendChild(div);
+            if (stick) con.scrollTop = con.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '';
+        }
+
+        function setBusy(busy) {
+            ['btnStart', 'btnStop', 'btnRestart'].forEach(id => {
+                const b = document.getElementById(id);
+                if (busy) b.disabled = true;
+            });
+            if (!busy) updateStatus();
+        }
+
+        async function serverAction(action) {
+            setBusy(true);
+            try {
+                if (action === 'restart') {
+                    await fetch('/Server/Stop', { method: 'POST' });
+                    await new Promise(r => setTimeout(r, 3000));
+                    const res = await fetch('/Server/Start', { method: 'POST' });
+                    const data = await res.json();
+                    McPanel.toast(data.success ? 'Sunucu yeniden başlatıldı!' : data.message, data.success ? 'ok' : 'err');
+                    return;
+                }
+
+                const url = action === 'start' ? '/Server/Start' : '/Server/Stop';
+                const res = await fetch(url, { method: 'POST' });
+                const data = await res.json();
+                McPanel.toast(data.message, data.success ? 'ok' : 'err');
+            } catch (e) {
+                McPanel.toast('Bağlantı hatası: ' + e.message, 'err');
+            } finally {
+                setBusy(false);
+            }
+        }
+
+        async function sendConsoleCommand() {
+            const input = document.getElementById('cmdInput');
+            const cmd = input.value.trim();
+            if (!cmd) return;
+
+            await fetch('/Server/SendCommand', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmd })
+            });
+            input.value = '';
+        }
+
+        function sendQuickCmd(cmd) {
+            fetch('/Server/SendCommand', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmd })
+            });
+        }
+
+        async function updateStatus() {
+            await McPanel.refreshStatus();
+        }
+
+        // keep the action buttons in sync with whatever the status poll reports
+        document.addEventListener('mc:status', e => {
+            const on = e.detail.isRunning;
+            document.getElementById('btnStart').disabled = on;
+            document.getElementById('btnStop').disabled = !on;
+            document.getElementById('btnRestart').disabled = false;
+        });
+
+        // colour the logs rendered by the server
+        document.querySelectorAll('#console > div').forEach(div => classifyLog(div, div.textContent));
+        const con = document.getElementById('console');
+        con.scrollTop = con.scrollHeight;
+
+        // Enter ile komut gönder
+        document.getElementById('cmdInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') sendConsoleCommand();
+        });
+
+        // durum sorgusu site.js içinde (10 sn)
+    </script>
+}
